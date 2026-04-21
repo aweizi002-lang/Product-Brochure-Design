@@ -1,0 +1,14 @@
+{
+  "description": "AI图片生成配置文件",
+  "note": "支持的API服务商：siliconflow（推荐，免费额度大）、zhipu、openai等",
+  "siliconflow": {
+    "api_url": "https://api.siliconflow.cn/v1/images/generations",
+    "models": ["stabilityai/stable-diffusion-3-medium", "black-forest-labs/FLUX.1-schnell"],
+    "note": "注册 https://siliconflow.cn 获取免费API key"
+  },
+  "zhipu": {
+    "api_url": "https://open.bigmodel.cn/api/paas/v4/images/generations",
+    "note": "智谱AI，注册获取API key"
+  },
+  "usage": "将此文件复制为 api_config.json 并填入你的API key"
+}
