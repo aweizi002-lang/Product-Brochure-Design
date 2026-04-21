@@ -1,6 +1,6 @@
 """
-产品简章折页设计工具 v2.1
-日系简约UI设计 + 在线AI文生图
+产品简章折页设计工具 v2.2
+日系简约UI设计 + 在线AI文生图（Kolors免费模型）
 作者：微酱
 """
 
@@ -310,7 +310,7 @@ def get_api_config():
         return {
             "api_key": api_key,
             "api_url": "https://api.siliconflow.cn/v1/images/generations",
-            "model": "black-forest-labs/FLUX.1-schnell"
+            "model": "stabilityai/stable-diffusion-3-medium"
         }
     
     config_path = os.path.join(os.path.dirname(__file__), "api_config.json")
@@ -370,7 +370,7 @@ def call_image_api(prompt, config, size="1024x1024"):
         }
         
         data = {
-            "model": config.get("model", "black-forest-labs/FLUX.1-schnell"),
+            "model": config.get("model", "Kwai-Kolors/Kolors"),
             "prompt": prompt,
             "image_size": size,
             "num_images": 1
@@ -417,7 +417,7 @@ def get_current_api_config():
     if not config and "api_key" in st.session_state:
         return {"api_key": st.session_state["api_key"], 
                 "api_url": "https://api.siliconflow.cn/v1/images/generations",
-                "model": "black-forest-labs/FLUX.1-schnell"}
+                "model": "stabilityai/stable-diffusion-3-medium"}
     return config
 
 # ==================== 主内容 ====================
