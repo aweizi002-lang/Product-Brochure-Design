@@ -1,6 +1,6 @@
 """
-产品简章折页设计工具 v2.4
-日系简约UI设计 + Pollinations.AI免费文生图 + 预览功能
+产品简章折页设计工具 v2.5
+日系简约UI设计 + Pollinations.AI高清文生图
 作者：微酱
 """
 
@@ -10,7 +10,7 @@ import json
 from datetime import datetime
 import requests
 from io import BytesIO
-from PIL import Image
+from PIL import Image, ImageDraw, ImageFont
 
 # ==================== 页面配置 ====================
 st.set_page_config(
@@ -359,15 +359,16 @@ def generate_image_prompt(title, style, scene_type="封面"):
     
     return prompt
 
-def call_image_api(prompt, config=None, size="1024x1024"):
+def call_image_api(prompt, config=None, size="1536x1024"):
     """使用Pollinations.AI免费生成图片（无需API Key）"""
     try:
         # 解析尺寸
         width, height = size.split("x")
         
-        # 构建Pollinations.AI URL
+        # 构建Pollinations.AI URL - 高清版本
         encoded_prompt = requests.utils.quote(prompt)
-        image_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width={width}&height={height}&model=flux&nologo=true"
+        # 使用flux模型，增加enhance参数提升质量
+        image_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width={width}&height={height}&model=flux&enhance=true&nologo=true"
         
         # 测试URL是否可访问
         response = requests.head(image_url, timeout=10)
@@ -889,6 +890,6 @@ if st.session_state.get("show_preview"):
 # 页脚
 st.markdown("""
 <div class="footer">
-    Made with 🌸 by 微酱 | v2.3 预览功能版
+    Made with 🌸 by 微酱 | v2.5 高清生图版
 </div>
 """, unsafe_allow_html=True)
