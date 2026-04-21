@@ -1,6 +1,6 @@
 """
-产品简章折页设计工具 v2.3
-日系简约UI设计 + Pollinations.AI免费文生图（无需API Key）
+产品简章折页设计工具 v2.4
+日系简约UI设计 + Pollinations.AI免费文生图 + 预览功能
 作者：微酱
 """
 
@@ -580,17 +580,315 @@ col1, col2, col3 = st.columns([2, 1, 1])
 with col1:
     project_name = st.text_input("项目名称", value=product_name or "产品简章")
 
+# 预览功能
+if "show_preview" not in st.session_state:
+    st.session_state["show_preview"] = False
+
 with col2:
     if st.button("预览效果"):
-        st.info("预览功能开发中...")
+        st.session_state["show_preview"] = True
 
 with col3:
     if st.button("导出PDF", type="primary"):
-        st.success("PDF导出功能开发中...")
+        st.session_state["show_preview"] = True
+        st.session_state["export_pdf"] = True
+
+# ==================== 预览渲染 ====================
+def generate_preview_html(fold_type, style, product_name, slogan, cover_image, 
+                          selling_points, pain_points, solution_title, solution_intro, 
+                          modules, course_modules, course_duration, course_location,
+                          teacher_name, teacher_title, teacher_experiences, teacher_image,
+                          guide, qr_images):
+    """生成折页预览HTML"""
+    
+    # 风格颜色映射
+    style_colors = {
+        "橙色科技风": {"primary": "#ff6b35", "secondary": "#f7931e", "bg": "#fff8f0"},
+        "红色商务风": {"primary": "#c41e3a", "secondary": "#8b0000", "bg": "#fff5f5"},
+        "蓝色商务风": {"primary": "#1e88e5", "secondary": "#0d47a1", "bg": "#f0f7ff"},
+        "绿色清新风": {"primary": "#43a047", "secondary": "#2e7d32", "bg": "#f0fff0"},
+        "紫色高端风": {"primary": "#7b1fa2", "secondary": "#4a148c", "bg": "#faf0ff"},
+        "金色尊贵风": {"primary": "#d4a574", "secondary": "#b8860b", "bg": "#fffaf0"}
+    }
+    colors = style_colors.get(style, style_colors["橙色科技风"])
+    
+    # 页面数量
+    pages = {"二折页": 4, "三折页": 6, "四折页": 8}
+    page_count = pages.get(fold_type, 6)
+    
+    html = f"""
+    <style>
+        .brochure-preview {{
+            width: 100%;
+            background: #f5f5f5;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }}
+        .preview-pages {{
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            justify-content: center;
+        }}
+        .preview-page {{
+            width: 180px;
+            height: 142px;
+            background: white;
+            border: 2px solid {colors['primary']};
+            border-radius: 4px;
+            padding: 10px;
+            font-size: 10px;
+            overflow: hidden;
+            position: relative;
+        }}
+        .preview-page .page-label {{
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: {colors['primary']};
+            color: white;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 9px;
+        }}
+        .preview-page h3 {{
+            color: {colors['primary']};
+            font-size: 12px;
+            margin: 15px 0 8px 0;
+            border-bottom: 1px solid {colors['primary']};
+            padding-bottom: 4px;
+        }}
+        .preview-page p {{
+            color: #333;
+            font-size: 9px;
+            margin: 3px 0;
+            line-height: 1.3;
+        }}
+        .preview-cover {{
+            background: linear-gradient(135deg, {colors['primary']}, {colors['secondary']});
+            color: white;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+        }}
+        .preview-cover h2 {{
+            color: white;
+            font-size: 14px;
+            margin: 5px 0;
+        }}
+        .preview-cover .slogan {{
+            font-size: 9px;
+            opacity: 0.9;
+        }}
+        .preview-item {{
+            display: flex;
+            align-items: flex-start;
+            margin: 4px 0;
+        }}
+        .preview-item .icon {{
+            margin-right: 5px;
+        }}
+        .preview-note {{
+            text-align: center;
+            color: #888;
+            font-size: 12px;
+            margin-top: 15px;
+        }}
+    </style>
+    <div class="brochure-preview">
+        <div style="text-align:center; color:{colors['primary']}; font-weight:500; margin-bottom:15px;">
+            📄 {fold_type}预览（{page_count}面）- {style}
+        </div>
+        <div class="preview-pages">
+    """
+    
+    # 封面
+    html += f"""
+        <div class="preview-page preview-cover">
+            <span class="page-label">封面</span>
+            <h2>{product_name or '产品名称'}</h2>
+            <p class="slogan">{slogan or '产品Slogan'}</p>
+        </div>
+    """
+    
+    # 痛点页
+    pain_html = "".join([f'<div class="preview-item"><span class="icon">{p["icon"]}</span><span>{p["text"]}</span></div>' for p in pain_points[:4]]) if pain_points else '<p>点击"痛点"标签填写</p>'
+    html += f"""
+        <div class="preview-page">
+            <span class="page-label">痛点</span>
+            <h3>核心痛点</h3>
+            {pain_html}
+        </div>
+    """
+    
+    # 方案页
+    modules_html = "".join([f'<p>▸ {m["name"]}</p>' for m in modules[:4]]) if modules else '<p>点击"方案"标签填写</p>'
+    html += f"""
+        <div class="preview-page">
+            <span class="page-label">方案</span>
+            <h3>{solution_title or '解决方案'}</h3>
+            <p>{solution_intro[:50] + '...' if solution_intro and len(solution_intro) > 50 else solution_intro or ''}</p>
+            {modules_html}
+        </div>
+    """
+    
+    # 课程页
+    if course_modules:
+        course_html = "".join([f'<p>{c["time"]} {c["content"]}</p>' for c in course_modules[:4]])
+        html += f"""
+        <div class="preview-page">
+            <span class="page-label">课程</span>
+            <h3>课程安排</h3>
+            <p>📍 {course_location or '地点'} | ⏰ {course_duration or '时长'}</p>
+            {course_html}
+        </div>
+        """
+    
+    # 讲师页
+    if teacher_name:
+        exp_html = "".join([f'<p>• {e}</p>' for e in teacher_experiences[:3]])
+        html += f"""
+        <div class="preview-page">
+            <span class="page-label">讲师</span>
+            <h3>讲师介绍</h3>
+            <p><strong>{teacher_name}</strong></p>
+            <p style="color:{colors['primary']}">{teacher_title}</p>
+            {exp_html}
+        </div>
+        """
+    
+    # 指南页
+    guide_html = "".join([f'<p><strong>{k}:</strong> {v}</p>' for k, v in list(guide.items())[:4] if v])
+    if guide_html:
+        html += f"""
+        <div class="preview-page">
+            <span class="page-label">指南</span>
+            <h3>学习指南</h3>
+            {guide_html}
+        </div>
+        """
+    
+    # 封底
+    html += f"""
+        <div class="preview-page preview-cover">
+            <span class="page-label">封底</span>
+            <h2>扫码咨询</h2>
+            <p class="slogan">期待您的加入</p>
+        </div>
+    """
+    
+    html += """
+        </div>
+        <p class="preview-note">💡 提示：这是简化预览，实际折页会根据排版优化布局</p>
+    </div>
+    """
+    
+    return html
+
+# 显示预览
+if st.session_state.get("show_preview"):
+    st.markdown("---")
+    
+    # 获取所有数据 - 使用安全的变量获取方式
+    cover_img = st.session_state.get("generated_images", {}).get("cover", "")
+    teacher_img = st.session_state.get("generated_images", {}).get("teacher", "")
+    
+    # 安全获取变量（避免未定义错误）
+    try:
+        sp = selling_points
+    except NameError:
+        sp = []
+    
+    try:
+        pp = pain_points
+    except NameError:
+        pp = []
+    
+    try:
+        stitle = solution_title
+    except NameError:
+        stitle = ""
+    
+    try:
+        sintro = solution_intro
+    except NameError:
+        sintro = ""
+    
+    try:
+        mods = modules
+    except NameError:
+        mods = []
+    
+    try:
+        cm = course_modules
+    except NameError:
+        cm = []
+    
+    try:
+        cd = course_duration
+    except NameError:
+        cd = ""
+    
+    try:
+        cl = course_location
+    except NameError:
+        cl = ""
+    
+    try:
+        tname = teacher_name
+    except NameError:
+        tname = ""
+    
+    try:
+        ttitle = teacher_title
+    except NameError:
+        ttitle = ""
+    
+    try:
+        texps = teacher_experiences
+    except NameError:
+        texps = []
+    
+    try:
+        g = guide
+    except NameError:
+        g = {}
+    
+    preview_html = generate_preview_html(
+        fold_type=fold_type,
+        style=style,
+        product_name=product_name,
+        slogan=product_slogan,
+        cover_image=cover_img,
+        selling_points=sp,
+        pain_points=pp,
+        solution_title=stitle,
+        solution_intro=sintro,
+        modules=mods,
+        course_modules=cm,
+        course_duration=cd,
+        course_location=cl,
+        teacher_name=tname,
+        teacher_title=ttitle,
+        teacher_experiences=texps,
+        teacher_image=teacher_img,
+        guide=g,
+        qr_images=[]
+    )
+    
+    st.markdown(preview_html, unsafe_allow_html=True)
+    
+    # 关闭预览按钮
+    if st.button("关闭预览"):
+        st.session_state["show_preview"] = False
+        st.rerun()
 
 # 页脚
 st.markdown("""
 <div class="footer">
-    Made with 🌸 by 微酱 | v2.1 日系简约版
+    Made with 🌸 by 微酱 | v2.3 预览功能版
 </div>
 """, unsafe_allow_html=True)
