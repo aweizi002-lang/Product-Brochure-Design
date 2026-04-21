@@ -1,6 +1,6 @@
 """
-产品简章折页设计工具 v2.0
-科技感UI设计 + 在线AI文生图
+产品简章折页设计工具 v2.1
+日系简约UI设计 + 在线AI文生图
 作者：微酱
 """
 
@@ -15,84 +15,123 @@ from PIL import Image
 # ==================== 页面配置 ====================
 st.set_page_config(
     page_title="产品简章折页设计工具",
-    page_icon="📄",
+    page_icon="🌸",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# ==================== 自定义CSS - 科技感主题 ====================
+# ==================== 日系UI CSS ====================
 st.markdown("""
 <style>
-    /* 主背景 */
+    /* 导入日系字体 */
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap');
+    
+    /* 主背景 - 温暖米白色 */
     .stApp {
-        background: linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 50%, #16213e 100%);
+        background: linear-gradient(180deg, #faf8f5 0%, #f5f0e8 100%);
+        font-family: 'Noto Sans SC', 'Hiragino Sans GB', sans-serif;
     }
     
-    /* 标题样式 */
-    h1 {
-        background: linear-gradient(90deg, #00d4ff, #7b2cbf);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        font-weight: 700;
+    /* 隐藏默认标题 */
+    [data-testid="stHeader"] {
+        background: transparent;
+    }
+    
+    /* 主标题 */
+    .main-title {
         text-align: center;
-        padding: 20px 0;
+        padding: 40px 0 20px 0;
     }
     
-    h2, h3 {
-        color: #e0e0e0;
-        border-bottom: 1px solid rgba(0, 212, 255, 0.3);
-        padding-bottom: 10px;
+    .main-title h1 {
+        color: #4a4a4a;
+        font-size: 28px;
+        font-weight: 300;
+        letter-spacing: 8px;
+        margin: 0;
+    }
+    
+    .main-title .subtitle {
+        color: #9a9a9a;
+        font-size: 13px;
+        letter-spacing: 4px;
+        margin-top: 10px;
+    }
+    
+    /* 装饰线 */
+    .deco-line {
+        width: 60px;
+        height: 1px;
+        background: #d4a574;
+        margin: 20px auto;
     }
     
     /* 侧边栏 */
     [data-testid="stSidebar"] {
-        background: rgba(15, 15, 26, 0.95);
-        border-right: 1px solid rgba(0, 212, 255, 0.2);
+        background: #ffffff;
+        border-right: 1px solid #eee;
+        box-shadow: 2px 0 10px rgba(0,0,0,0.02);
     }
     
-    [data-testid="stSidebar"] .element-container {
-        color: #e0e0e0;
+    [data-testid="stSidebar"] h3 {
+        color: #5a5a5a;
+        font-size: 14px;
+        font-weight: 500;
+        letter-spacing: 2px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid #eee;
+    }
+    
+    /* 标签 */
+    h2, h3, h4 {
+        color: #5a5a5a;
+        font-weight: 400;
+        letter-spacing: 1px;
     }
     
     /* 输入框 */
     .stTextInput input, .stTextArea textarea {
-        background: rgba(255, 255, 255, 0.05);
-        border: 1px solid rgba(0, 212, 255, 0.3);
-        color: #ffffff;
-        border-radius: 8px;
+        background: #ffffff;
+        border: 1px solid #e8e8e8;
+        border-radius: 4px;
+        color: #4a4a4a;
+        font-size: 14px;
+        transition: all 0.3s ease;
     }
     
     .stTextInput input:focus, .stTextArea textarea:focus {
-        border-color: #00d4ff;
-        box-shadow: 0 0 15px rgba(0, 212, 255, 0.3);
+        border-color: #d4a574;
+        box-shadow: 0 0 0 3px rgba(212, 165, 116, 0.1);
     }
     
-    .stTextInput input::placeholder, .stTextArea textarea::placeholder {
-        color: rgba(255, 255, 255, 0.4);
+    .stTextInput input::placeholder {
+        color: #bbb;
     }
     
-    /* 下拉选择框 */
+    /* 下拉框 */
     .stSelectbox div[data-baseweb="select"] {
-        background: rgba(255, 255, 255, 0.05);
-        border: 1px solid rgba(0, 212, 255, 0.3);
-        border-radius: 8px;
+        background: #fff;
+        border: 1px solid #e8e8e8;
+        border-radius: 4px;
     }
     
     /* 按钮 */
     .stButton button {
-        background: linear-gradient(135deg, #00d4ff 0%, #7b2cbf 100%);
+        background: #d4a574;
         border: none;
         border-radius: 25px;
         color: white;
-        font-weight: 600;
-        padding: 10px 30px;
+        font-weight: 400;
+        letter-spacing: 2px;
+        padding: 12px 32px;
         transition: all 0.3s ease;
-        box-shadow: 0 4px 15px rgba(0, 212, 255, 0.3);
+        box-shadow: 0 2px 8px rgba(212, 165, 116, 0.2);
     }
     
     .stButton button:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 25px rgba(0, 212, 255, 0.5);
+        background: #c49564;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(212, 165, 116, 0.3);
     }
     
     .stButton button:active {
@@ -101,149 +140,166 @@ st.markdown("""
     
     /* 主按钮 */
     .stButton button[kind="primary"] {
-        background: linear-gradient(135deg, #00d4ff 0%, #00ff88 100%);
+        background: #7eb5a6;
     }
     
-    /* Tab样式 */
+    .stButton button[kind="primary"]:hover {
+        background: #6ea596;
+    }
+    
+    /* Tab标签 */
     .stTabs [data-baseweb="tab-list"] {
-        gap: 8px;
-        background: rgba(255, 255, 255, 0.02);
-        border-radius: 15px;
-        padding: 5px;
+        gap: 0;
+        background: transparent;
+        border-bottom: 1px solid #eee;
     }
     
     .stTabs [data-baseweb="tab"] {
         background: transparent;
-        border-radius: 10px;
-        color: rgba(255, 255, 255, 0.6);
-        padding: 12px 24px;
-        font-weight: 500;
+        color: #9a9a9a;
+        font-size: 13px;
+        font-weight: 400;
+        letter-spacing: 1px;
+        padding: 15px 25px;
+        border-bottom: 2px solid transparent;
+        transition: all 0.3s ease;
     }
     
     .stTabs [data-baseweb="tab"]:hover {
-        background: rgba(0, 212, 255, 0.1);
-        color: #00d4ff;
+        color: #d4a574;
     }
     
     .stTabs [aria-selected="true"] {
-        background: linear-gradient(135deg, rgba(0, 212, 255, 0.2), rgba(123, 44, 191, 0.2));
-        color: #00d4ff;
-        border: 1px solid rgba(0, 212, 255, 0.3);
+        color: #d4a574;
+        border-bottom-color: #d4a574;
+        background: transparent;
     }
     
-    /* 信息框 */
-    .stSuccess, .stInfo, .stWarning, .stError {
-        border-radius: 10px;
-        border: 1px solid;
-        backdrop-filter: blur(10px);
-    }
-    
+    /* 信息提示 */
     .stSuccess {
-        background: rgba(0, 255, 136, 0.1);
-        border-color: rgba(0, 255, 136, 0.3);
+        background: #f0f9f6;
+        border: 1px solid #c8e6dc;
+        color: #5a8a7a;
     }
     
     .stInfo {
-        background: rgba(0, 212, 255, 0.1);
-        border-color: rgba(0, 212, 255, 0.3);
+        background: #faf5f0;
+        border: 1px solid #e8ddd0;
+        color: #8a7a6a;
     }
     
     .stWarning {
-        background: rgba(255, 193, 7, 0.1);
-        border-color: rgba(255, 193, 7, 0.3);
+        background: #fff9f0;
+        border: 1px solid #f0e0c8;
+        color: #9a7a5a;
     }
     
-    /* 卡片效果 */
+    /* 卡片 */
     .card {
-        background: rgba(255, 255, 255, 0.03);
-        border: 1px solid rgba(0, 212, 255, 0.15);
-        border-radius: 15px;
-        padding: 20px;
-        margin: 10px 0;
-        backdrop-filter: blur(10px);
+        background: #fff;
+        border-radius: 8px;
+        padding: 25px;
+        margin: 15px 0;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+        border: 1px solid #f0f0f0;
     }
     
     /* 上传区域 */
     [data-testid="stFileUploader"] {
-        background: rgba(255, 255, 255, 0.02);
-        border: 2px dashed rgba(0, 212, 255, 0.3);
-        border-radius: 15px;
-        padding: 20px;
+        background: #fafafa;
+        border: 2px dashed #e0e0e0;
+        border-radius: 8px;
+        padding: 25px;
         transition: all 0.3s ease;
     }
     
     [data-testid="stFileUploader"]:hover {
-        border-color: #00d4ff;
-        background: rgba(0, 212, 255, 0.05);
+        border-color: #d4a574;
+        background: #faf5f0;
     }
     
     /* 复选框 */
     .stCheckbox label {
-        color: #e0e0e0;
-    }
-    
-    /* Metric */
-    [data-testid="stMetric"] {
-        background: rgba(255, 255, 255, 0.03);
-        border-radius: 10px;
-        padding: 15px;
-        border: 1px solid rgba(0, 212, 255, 0.15);
+        color: #6a6a6a;
     }
     
     /* 分割线 */
     hr {
         border: none;
         height: 1px;
-        background: linear-gradient(90deg, transparent, rgba(0, 212, 255, 0.3), transparent);
+        background: linear-gradient(90deg, transparent, #e8e8e8, transparent);
+        margin: 30px 0;
     }
     
     /* 代码块 */
-    .stCode {
-        background: rgba(0, 0, 0, 0.3);
-        border: 1px solid rgba(0, 212, 255, 0.2);
-        border-radius: 10px;
+    .stCode, code {
+        background: #f8f6f4;
+        border: 1px solid #eee;
+        border-radius: 4px;
+        color: #6a6a6a;
     }
     
     /* 滚动条 */
     ::-webkit-scrollbar {
-        width: 8px;
+        width: 6px;
     }
     
     ::-webkit-scrollbar-track {
-        background: rgba(255, 255, 255, 0.05);
+        background: #f5f5f5;
     }
     
     ::-webkit-scrollbar-thumb {
-        background: rgba(0, 212, 255, 0.3);
-        border-radius: 4px;
+        background: #ddd;
+        border-radius: 3px;
     }
     
     ::-webkit-scrollbar-thumb:hover {
-        background: rgba(0, 212, 255, 0.5);
+        background: #ccc;
     }
     
     /* 页脚 */
     .footer {
         text-align: center;
-        color: rgba(255, 255, 255, 0.4);
+        color: #aaa;
         font-size: 12px;
-        padding: 30px 0;
+        padding: 40px 0;
+        letter-spacing: 2px;
     }
     
-    /* 加载动画 */
-    .stSpinner > div {
-        border-color: #00d4ff transparent transparent transparent;
+    /* 标签样式 */
+    .tag {
+        display: inline-block;
+        background: #f5f0e8;
+        color: #8a7a6a;
+        padding: 4px 12px;
+        border-radius: 12px;
+        font-size: 12px;
+        margin: 0 4px;
     }
+    
+    /* 装饰元素 */
+    .sakura {
+        color: #f0c0c0;
+        font-size: 14px;
+    }
+    
+    /* 加载 */
+    .stSpinner > div {
+        border-color: #d4a574 transparent transparent transparent;
+    }
+    
+    /* 隐藏streamlit默认元素 */
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
 </style>
 """, unsafe_allow_html=True)
 
 # ==================== 标题区 ====================
 st.markdown("""
-<div style="text-align: center; padding: 10px 0 30px 0;">
-    <h1>📄 产品简章折页设计工具</h1>
-    <p style="color: rgba(255,255,255,0.5); font-size: 14px;">
-        智能设计 · AI生图 · 一键导出
-    </p>
+<div class="main-title">
+    <h1>折页设计工具</h1>
+    <div class="deco-line"></div>
+    <div class="subtitle">Brochure Design Studio</div>
 </div>
 """, unsafe_allow_html=True)
 
@@ -273,12 +329,12 @@ SCENE_KEYWORDS = {
 }
 
 STYLE_PROMPTS = {
-    "橙色科技风": "科技感，橙色渐变，现代商务，数据可视化元素",
-    "红色商务风": "商务专业，红色主调，稳重高端，企业级氛围",
+    "橙色科技风": "科技感，橙色渐变，现代商务，数据可视化",
+    "红色商务风": "商务专业，红色主调，稳重高端，企业级",
     "蓝色商务风": "商务科技，蓝色渐变，专业可信，智能化",
     "绿色清新风": "清新自然，绿色主调，活力成长，健康向上",
     "紫色高端风": "高端奢华，紫色渐变，尊贵典雅，精英气质",
-    "金色尊贵风": "金色质感，尊贵大气，高端商务，成功喜悦"
+    "金色尊贵风": "金色质感，尊贵大气，高端商务，成功氛围"
 }
 
 # ==================== 工具函数 ====================
@@ -297,7 +353,7 @@ def generate_image_prompt(title, style, scene_type="封面"):
         prompt = f"{title}产品宣传，{style_desc}"
     
     if scene_type == "封面":
-        prompt += "，产品宣传封面，高质量商业设计，4k，专业摄影"
+        prompt += "，产品宣传封面，高质量商业设计，4k"
     else:
         prompt += "，信息配图，简洁清晰"
     
@@ -332,14 +388,16 @@ def call_image_api(prompt, config, size="1024x1024"):
 
 # ==================== 侧边栏 ====================
 with st.sidebar:
-    st.markdown("### ⚙️ 项目设置")
+    st.markdown("### ⚙️ 设置")
     
-    fold_type = st.selectbox("折页类型", ["三折页", "四折页", "二折页"])
+    st.markdown("#### 折页类型")
+    fold_type = st.selectbox("", ["三折页", "四折页", "二折页"], label_visibility="collapsed")
     
-    size_map = {"二折页": "360mm × 285mm", "三折页": "540mm × 285mm", "四折页": "720mm × 285mm"}
+    size_map = {"二折页": "360 × 285 mm", "三折页": "540 × 285 mm", "四折页": "720 × 285 mm"}
     st.info(f"📐 {size_map[fold_type]}")
     
-    style = st.selectbox("设计风格", list(STYLE_PROMPTS.keys()))
+    st.markdown("#### 设计风格")
+    style = st.selectbox("", list(STYLE_PROMPTS.keys()), label_visibility="collapsed")
     
     st.markdown("---")
     st.markdown("### 🔑 API配置")
@@ -349,11 +407,11 @@ with st.sidebar:
         st.success("✅ API已配置")
     else:
         st.warning("⚠️ 请配置API Key")
-        api_key_input = st.text_input("API Key", type="password", help="注册 siliconflow.cn 获取")
+        api_key_input = st.text_input("API Key", type="password", label_visibility="collapsed")
         if api_key_input:
             st.session_state["api_key"] = api_key_input
+            st.success("已保存")
 
-# 获取当前API配置
 def get_current_api_config():
     config = get_api_config()
     if not config and "api_key" in st.session_state:
@@ -363,7 +421,9 @@ def get_current_api_config():
     return config
 
 # ==================== 主内容 ====================
-tabs = st.tabs(["🎨 封面", "😰 痛点", "💡 方案", "📅 课程", "👨‍🏫 讲师", "📖 指南"])
+tab_names = ["封面", "痛点", "方案", "课程", "讲师", "指南"]
+tab_icons = ["🎨", "💭", "💡", "📅", "👤", "📋"]
+tabs = st.tabs([f"{tab_icons[i]} {name}" for i, name in enumerate(tab_names)])
 
 if "generated_images" not in st.session_state:
     st.session_state["generated_images"] = {}
@@ -373,22 +433,23 @@ with tabs[0]:
     col1, col2 = st.columns([3, 2])
     
     with col1:
+        st.markdown("#### 基本信息")
         product_name = st.text_input("产品名称", placeholder="如：销售训战")
         product_slogan = st.text_input("Slogan", placeholder="如：像复制文件一样复制销冠")
         
-        st.markdown("#### 🤖 AI封面图生成")
+        st.markdown("#### AI封面图")
         
         if product_name:
             auto_prompt = generate_image_prompt(product_name, style, "封面")
-            prompt_text = st.text_area("提示词", value=auto_prompt, height=80)
+            prompt_text = st.text_area("提示词", value=auto_prompt, height=70)
             
-            if st.button("🎨 生成封面图", type="primary", use_container_width=True):
+            if st.button("生成封面图", type="primary"):
                 current_config = get_current_api_config()
                 if current_config:
-                    with st.spinner("🚀 正在生成..."):
+                    with st.spinner("生成中..."):
                         image_url, msg = call_image_api(prompt_text, current_config)
                     if image_url:
-                        st.success("✅ 生成成功！")
+                        st.success("✅ 生成成功")
                         st.session_state["generated_images"]["cover"] = image_url
                     else:
                         st.error(msg)
@@ -400,18 +461,18 @@ with tabs[0]:
         
         st.markdown("#### 核心卖点")
         selling_points = []
-        cols = st.columns(2)
+        c1, c2 = st.columns(2)
         for i in range(4):
-            with cols[i % 2]:
-                point = st.text_input(f"卖点{i+1}", key=f"sp_{i}")
+            with c1 if i < 2 else c2:
+                point = st.text_input(f"卖点 {i+1}", key=f"sp_{i}")
                 if point:
                     selling_points.append(point)
         
         version = st.text_input("版本号", placeholder="L06-2603-V01")
     
     with col2:
-        st.markdown("#### 📤 上传封面图")
-        cover_upload = st.file_uploader("或上传已有图片", type=['png', 'jpg', 'jpeg'])
+        st.markdown("#### 上传图片")
+        cover_upload = st.file_uploader("或上传已有封面图", type=['png', 'jpg', 'jpeg'])
         if cover_upload:
             st.image(cover_upload, use_column_width=True)
 
@@ -423,44 +484,43 @@ with tabs[1]:
     with col1:
         if product_name:
             pain_prompt = generate_image_prompt(product_name + "困境", style, "配图")
-            st.text_area("痛点配图提示词", value=pain_prompt, height=60, key="pain_prompt")
-            if st.button("🎨 生成痛点配图"):
+            st.text_area("配图提示词", value=pain_prompt, height=50, key="pain_prompt")
+            if st.button("生成痛点配图"):
                 current_config = get_current_api_config()
                 if current_config:
                     with st.spinner("生成中..."):
                         img_url, msg = call_image_api(pain_prompt, current_config)
                     if img_url:
-                        st.success("✅ 成功")
                         st.session_state["generated_images"]["pain"] = img_url
     
     with col2:
         if "pain" in st.session_state.get("generated_images", {}):
-            st.image(st.session_state["generated_images"]["pain"], width=300)
+            st.image(st.session_state["generated_images"]["pain"], width=280)
     
     st.markdown("#### 痛点列表")
     pain_points = []
     for i in range(6):
-        c1, c2 = st.columns([1, 4])
+        c1, c2 = st.columns([1, 5])
         with c1:
-            icon = st.selectbox("图标", ["❓", "⚠️", "❌", "💡", "🎯"], key=f"icon_{i}")
+            icon = st.selectbox("", ["❓", "⚠️", "❌", "💡", "🎯"], key=f"icon_{i}", label_visibility="collapsed")
         with c2:
-            text = st.text_input(f"痛点{i+1}", key=f"pain_{i}")
+            text = st.text_input(f"痛点 {i+1}", key=f"pain_{i}", label_visibility="collapsed")
         if text:
             pain_points.append({"icon": icon, "text": text})
 
 # ==================== 方案 ====================
 with tabs[2]:
     solution_title = st.text_input("方案标题", value="突围之道")
-    solution_intro = st.text_area("方案简介", height=80)
+    solution_intro = st.text_area("方案简介", height=70)
     
     st.markdown("#### 功能模块")
     modules = []
     for i in range(6):
         c1, c2 = st.columns([1, 3])
         with c1:
-            name = st.text_input(f"模块{i+1}", key=f"mod_{i}")
+            name = st.text_input(f"模块 {i+1}", key=f"mod_{i}", label_visibility="collapsed")
         with c2:
-            desc = st.text_area("描述", key=f"mod_desc_{i}", height=50)
+            desc = st.text_area("描述", key=f"mod_desc_{i}", height=50, label_visibility="collapsed")
         if name:
             modules.append({"name": name, "desc": desc})
 
@@ -482,9 +542,9 @@ with tabs[3]:
         for i in range(6):
             c1, c2 = st.columns([1, 3])
             with c1:
-                time = st.text_input("时间", key=f"time_{i}")
+                time = st.text_input("时间", key=f"time_{i}", label_visibility="collapsed")
             with c2:
-                content = st.text_input("内容", key=f"content_{i}")
+                content = st.text_input("内容", key=f"content_{i}", label_visibility="collapsed")
             if content:
                 course_modules.append({"time": time, "content": content})
 
@@ -501,8 +561,8 @@ with tabs[4]:
             st.markdown("#### 讲师照片")
             teacher_desc = st.text_input("形象描述", placeholder="中年男性，商务西装")
             if teacher_desc:
-                t_prompt = f"{teacher_desc}，职业商务肖像照，专业影棚背景"
-                if st.button("🎨 生成讲师照"):
+                t_prompt = f"{teacher_desc}，职业商务肖像照"
+                if st.button("生成讲师照"):
                     current_config = get_current_api_config()
                     if current_config:
                         with st.spinner("生成中..."):
@@ -511,11 +571,11 @@ with tabs[4]:
                             st.session_state["generated_images"]["teacher"] = img_url
             
             if "teacher" in st.session_state.get("generated_images", {}):
-                st.image(st.session_state["generated_images"]["teacher"], width=200)
+                st.image(st.session_state["generated_images"]["teacher"], width=180)
             
             teacher_upload = st.file_uploader("或上传照片", type=['png', 'jpg', 'jpeg'])
             if teacher_upload:
-                st.image(teacher_upload, width=200)
+                st.image(teacher_upload, width=180)
         
         with c2:
             teacher_name = st.text_input("讲师姓名", placeholder="董仁杰")
@@ -523,7 +583,7 @@ with tabs[4]:
             
             st.markdown("#### 讲师经历")
             for i in range(4):
-                exp = st.text_input(f"经历{i+1}", key=f"exp_{i}")
+                exp = st.text_input(f"经历 {i+1}", key=f"exp_{i}")
                 if exp:
                     teacher_experiences.append(exp)
 
@@ -537,13 +597,13 @@ with tabs[5]:
     st.markdown("#### 二维码")
     c1, c2 = st.columns(2)
     with c1:
-        qr1 = st.file_uploader("二维码1", type=['png', 'jpg'])
+        qr1 = st.file_uploader("二维码 1", type=['png', 'jpg'])
         if qr1:
-            st.image(qr1, width=150)
+            st.image(qr1, width=140)
     with c2:
-        qr2 = st.file_uploader("二维码2", type=['png', 'jpg'])
+        qr2 = st.file_uploader("二维码 2", type=['png', 'jpg'])
         if qr2:
-            st.image(qr2, width=150)
+            st.image(qr2, width=140)
 
 # ==================== 导出 ====================
 st.markdown("---")
@@ -553,16 +613,16 @@ with col1:
     project_name = st.text_input("项目名称", value=product_name or "产品简章")
 
 with col2:
-    if st.button("👁️ 预览", use_container_width=True):
+    if st.button("预览效果"):
         st.info("预览功能开发中...")
 
 with col3:
-    if st.button("📥 导出PDF", type="primary", use_container_width=True):
-        st.success("✅ PDF导出功能开发中...")
+    if st.button("导出PDF", type="primary"):
+        st.success("PDF导出功能开发中...")
 
 # 页脚
 st.markdown("""
 <div class="footer">
-    Made with ❤️ by 微酱 | v2.0 科技感UI版
+    Made with 🌸 by 微酱 | v2.1 日系简约版
 </div>
 """, unsafe_allow_html=True)
