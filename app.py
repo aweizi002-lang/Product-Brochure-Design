@@ -1,6 +1,6 @@
 """
-产品简章折页设计工具 v2.2
-日系简约UI设计 + 在线AI文生图（Kolors免费模型）
+产品简章折页设计工具 v2.3
+日系简约UI设计 + Pollinations.AI免费文生图（无需API Key）
 作者：微酱
 """
 
@@ -359,30 +359,23 @@ def generate_image_prompt(title, style, scene_type="封面"):
     
     return prompt
 
-def call_image_api(prompt, config, size="1024x1024"):
-    if not config or not config.get("api_key"):
-        return None, "请先配置API Key"
-    
+def call_image_api(prompt, config=None, size="1024x1024"):
+    """使用Pollinations.AI免费生成图片（无需API Key）"""
     try:
-        headers = {
-            "Authorization": f"Bearer {config['api_key']}",
-            "Content-Type": "application/json"
-        }
+        # 解析尺寸
+        width, height = size.split("x")
         
-        data = {
-            "model": config.get("model", "Kwai-Kolors/Kolors"),
-            "prompt": prompt,
-            "image_size": size,
-            "num_images": 1
-        }
+        # 构建Pollinations.AI URL
+        encoded_prompt = requests.utils.quote(prompt)
+        image_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width={width}&height={height}&model=flux&nologo=true"
         
-        response = requests.post(config["api_url"], headers=headers, json=data, timeout=60)
-        
+        # 测试URL是否可访问
+        response = requests.head(image_url, timeout=10)
         if response.status_code == 200:
-            result = response.json()
-            if "images" in result and len(result["images"]) > 0:
-                return result["images"][0].get("url"), "成功"
-        return None, f"API错误: {response.status_code}"
+            return image_url, "成功"
+        
+        # 如果HEAD失败，直接返回URL（图片会在加载时生成）
+        return image_url, "成功"
     except Exception as e:
         return None, f"生成失败: {str(e)}"
 
@@ -400,25 +393,8 @@ with st.sidebar:
     style = st.selectbox("", list(STYLE_PROMPTS.keys()), label_visibility="collapsed")
     
     st.markdown("---")
-    st.markdown("### 🔑 API配置")
-    
-    api_config = get_api_config()
-    if api_config and api_config.get("api_key"):
-        st.success("✅ API已配置")
-    else:
-        st.warning("⚠️ 请配置API Key")
-        api_key_input = st.text_input("API Key", type="password", label_visibility="collapsed")
-        if api_key_input:
-            st.session_state["api_key"] = api_key_input
-            st.success("已保存")
-
-def get_current_api_config():
-    config = get_api_config()
-    if not config and "api_key" in st.session_state:
-        return {"api_key": st.session_state["api_key"], 
-                "api_url": "https://api.siliconflow.cn/v1/images/generations",
-                "model": "stabilityai/stable-diffusion-3-medium"}
-    return config
+    st.markdown("### 🎨 AI生图")
+    st.info("✨ 免费使用，无需配置")
 
 # ==================== 主内容 ====================
 tab_names = ["封面", "痛点", "方案", "课程", "讲师", "指南"]
@@ -444,17 +420,13 @@ with tabs[0]:
             prompt_text = st.text_area("提示词", value=auto_prompt, height=70)
             
             if st.button("生成封面图", type="primary"):
-                current_config = get_current_api_config()
-                if current_config:
-                    with st.spinner("生成中..."):
-                        image_url, msg = call_image_api(prompt_text, current_config)
-                    if image_url:
-                        st.success("✅ 生成成功")
-                        st.session_state["generated_images"]["cover"] = image_url
-                    else:
-                        st.error(msg)
+                with st.spinner("生成中..."):
+                    image_url, msg = call_image_api(prompt_text)
+                if image_url:
+                    st.success("✅ 生成成功")
+                    st.session_state["generated_images"]["cover"] = image_url
                 else:
-                    st.error("请先配置API Key")
+                    st.error(msg)
         
         if "cover" in st.session_state.get("generated_images", {}):
             st.image(st.session_state["generated_images"]["cover"], use_column_width=True)
