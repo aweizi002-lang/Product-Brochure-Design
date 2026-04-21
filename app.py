@@ -458,12 +458,10 @@ with tabs[1]:
             pain_prompt = generate_image_prompt(product_name + "困境", style, "配图")
             st.text_area("配图提示词", value=pain_prompt, height=50, key="pain_prompt")
             if st.button("生成痛点配图"):
-                current_config = get_current_api_config()
-                if current_config:
-                    with st.spinner("生成中..."):
-                        img_url, msg = call_image_api(pain_prompt, current_config)
-                    if img_url:
-                        st.session_state["generated_images"]["pain"] = img_url
+                with st.spinner("生成中..."):
+                    img_url, msg = call_image_api(pain_prompt)
+                if img_url:
+                    st.session_state["generated_images"]["pain"] = img_url
     
     with col2:
         if "pain" in st.session_state.get("generated_images", {}):
@@ -535,12 +533,10 @@ with tabs[4]:
             if teacher_desc:
                 t_prompt = f"{teacher_desc}，职业商务肖像照"
                 if st.button("生成讲师照"):
-                    current_config = get_current_api_config()
-                    if current_config:
-                        with st.spinner("生成中..."):
-                            img_url, msg = call_image_api(t_prompt, current_config)
-                        if img_url:
-                            st.session_state["generated_images"]["teacher"] = img_url
+                    with st.spinner("生成中..."):
+                        img_url, msg = call_image_api(t_prompt)
+                    if img_url:
+                        st.session_state["generated_images"]["teacher"] = img_url
             
             if "teacher" in st.session_state.get("generated_images", {}):
                 st.image(st.session_state["generated_images"]["teacher"], width=180)
