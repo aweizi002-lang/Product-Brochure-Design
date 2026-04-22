@@ -1,6 +1,6 @@
 """
-产品简章折页设计工具 v2.5
-日系简约UI设计 + Pollinations.AI高清文生图
+产品简章折页设计工具 v3.0
+日系简约UI设计 + Pollinations.AI高清文生图 + 可视化预览
 作者：微酱
 """
 
@@ -405,6 +405,13 @@ tabs = st.tabs([f"{tab_icons[i]} {name}" for i, name in enumerate(tab_names)])
 if "generated_images" not in st.session_state:
     st.session_state["generated_images"] = {}
 
+# 封面尺寸映射（根据折页单面尺寸180×285mm，比例约1:1.58，竖向）
+COVER_SIZE_MAP = {
+    "二折页": "1024x1600",  # 竖向，适合单面封面
+    "三折页": "1024x1600",
+    "四折页": "1024x1600"
+}
+
 # ==================== 封面 ====================
 with tabs[0]:
     col1, col2 = st.columns([3, 2])
@@ -420,9 +427,13 @@ with tabs[0]:
             auto_prompt = generate_image_prompt(product_name, style, "封面")
             prompt_text = st.text_area("提示词", value=auto_prompt, height=70)
             
+            # 显示当前封面尺寸
+            cover_size = COVER_SIZE_MAP.get(fold_type, "1024x1600")
+            st.caption(f"📐 生成尺寸: {cover_size} (竖向，匹配折页单面比例)")
+            
             if st.button("生成封面图", type="primary"):
                 with st.spinner("生成中..."):
-                    image_url, msg = call_image_api(prompt_text)
+                    image_url, msg = call_image_api(prompt_text, size=cover_size)
                 if image_url:
                     st.success("✅ 生成成功")
                     st.session_state["generated_images"]["cover"] = image_url
@@ -458,9 +469,10 @@ with tabs[1]:
         if product_name:
             pain_prompt = generate_image_prompt(product_name + "困境", style, "配图")
             st.text_area("配图提示词", value=pain_prompt, height=50, key="pain_prompt")
+            st.caption("📐 生成尺寸: 1536x1024 (横向配图)")
             if st.button("生成痛点配图"):
                 with st.spinner("生成中..."):
-                    img_url, msg = call_image_api(pain_prompt)
+                    img_url, msg = call_image_api(pain_prompt, size="1536x1024")
                 if img_url:
                     st.session_state["generated_images"]["pain"] = img_url
     
@@ -533,9 +545,10 @@ with tabs[4]:
             teacher_desc = st.text_input("形象描述", placeholder="中年男性，商务西装")
             if teacher_desc:
                 t_prompt = f"{teacher_desc}，职业商务肖像照"
+                st.caption("📐 生成尺寸: 1024x1280 (竖向肖像)")
                 if st.button("生成讲师照"):
                     with st.spinner("生成中..."):
-                        img_url, msg = call_image_api(t_prompt)
+                        img_url, msg = call_image_api(t_prompt, size="1024x1280")
                     if img_url:
                         st.session_state["generated_images"]["teacher"] = img_url
             
@@ -581,6 +594,201 @@ col1, col2, col3 = st.columns([2, 1, 1])
 with col1:
     project_name = st.text_input("项目名称", value=product_name or "产品简章")
 
+# ==================== 预览渲染 ====================
+def hex_to_rgb(hex_color):
+    """十六进制颜色转RGB"""
+    hex_color = hex_color.lstrip('#')
+    return tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
+
+def get_font(size, bold=False):
+    """获取字体，优先使用系统中文字体"""
+    font_paths = [
+        "/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc",
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf" if bold else "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+        "/System/Library/Fonts/PingFang.ttc",
+        "C:\\Windows\\Fonts\\msyh.ttc",
+    ]
+    for path in font_paths:
+        try:
+            return ImageFont.truetype(path, size)
+        except:
+            continue
+    return ImageFont.load_default()
+
+def create_brochure_preview(fold_type, style, product_name, slogan, 
+                            pain_points, solution_title, solution_intro, modules,
+                            course_modules, course_duration, course_location,
+                            teacher_name, teacher_title, teacher_experiences,
+                            guide, cover_image_url=None):
+    """生成折页可视化预览图"""
+    
+    # 风格颜色
+    style_colors = {
+        "橙色科技风": {"primary": "#ff6b35", "secondary": "#f7931e", "accent": "#ffd700"},
+        "红色商务风": {"primary": "#c41e3a", "secondary": "#8b0000", "accent": "#ffcc00"},
+        "蓝色商务风": {"primary": "#1e88e5", "secondary": "#0d47a1", "accent": "#00bcd4"},
+        "绿色清新风": {"primary": "#43a047", "secondary": "#2e7d32", "accent": "#8bc34a"},
+        "紫色高端风": {"primary": "#7b1fa2", "secondary": "#4a148c", "accent": "#e1bee7"},
+        "金色尊贵风": {"primary": "#d4a574", "secondary": "#b8860b", "accent": "#ffd700"}
+    }
+    colors = style_colors.get(style, style_colors["橙色科技风"])
+    primary = hex_to_rgb(colors["primary"])
+    secondary = hex_to_rgb(colors["secondary"])
+    accent = hex_to_rgb(colors["accent"])
+    
+    # 单面尺寸 (预览用，按比例缩小)
+    # 实际: 180mm x 285mm, 预览: 180px x 285px
+    page_w, page_h = 180, 285
+    
+    # 页面数量
+    pages_count = {"二折页": 4, "三折页": 6, "四折页": 8}
+    num_pages = pages_count.get(fold_type, 6)
+    
+    # 字体
+    font_title = get_font(16, bold=True)
+    font_subtitle = get_font(12)
+    font_text = get_font(10)
+    font_small = get_font(8)
+    
+    pages = []
+    
+    # ===== 封面 =====
+    cover = Image.new('RGB', (page_w, page_h), primary)
+    draw = ImageDraw.Draw(cover)
+    
+    # 装饰线条
+    draw.line([20, 80, page_w-20, 80], fill=(255,255,255), width=2)
+    draw.line([20, page_h-80, page_w-20, page_h-80], fill=(255,255,255), width=2)
+    
+    # 标题
+    title = product_name or "产品名称"
+    draw.text((page_w//2, page_h//2-20), title, fill=(255,255,255), font=font_title, anchor="mm")
+    
+    # Slogan
+    if slogan:
+        draw.text((page_w//2, page_h//2+10), slogan, fill=(255,255,255,200), font=font_small, anchor="mm")
+    
+    pages.append(("封面", cover))
+    
+    # ===== 痛点页 =====
+    pain_page = Image.new('RGB', (page_w, page_h), (255,255,255))
+    draw = ImageDraw.Draw(pain_page)
+    
+    # 标题栏
+    draw.rectangle([0, 0, page_w, 40], fill=primary)
+    draw.text((page_w//2, 20), "核心痛点", fill=(255,255,255), font=font_subtitle, anchor="mm")
+    
+    # 痛点列表
+    y = 55
+    for i, p in enumerate(pain_points[:5] if pain_points else []):
+        icon = p.get("icon", "•")
+        text = p.get("text", "")[:18]
+        draw.text((15, y), f"{icon} {text}", fill=(60,60,60), font=font_text)
+        y += 35
+    
+    if not pain_points:
+        draw.text((page_w//2, 100), "暂无痛点数据", fill=(180,180,180), font=font_small, anchor="mm")
+    
+    pages.append(("痛点", pain_page))
+    
+    # ===== 方案页 =====
+    solution_page = Image.new('RGB', (page_w, page_h), (255,255,255))
+    draw = ImageDraw.Draw(solution_page)
+    
+    draw.rectangle([0, 0, page_w, 40], fill=primary)
+    draw.text((page_w//2, 20), solution_title or "解决方案", fill=(255,255,255), font=font_subtitle, anchor="mm")
+    
+    y = 55
+    if solution_intro:
+        draw.text((15, y), solution_intro[:25], fill=(80,80,80), font=font_small)
+        y += 20
+    
+    for m in (modules[:5] if modules else []):
+        name = m.get("name", "")[:12]
+        draw.rectangle([15, y, 20, y+5], fill=accent)
+        draw.text((25, y), name, fill=(60,60,60), font=font_text)
+        y += 30
+    
+    pages.append(("方案", solution_page))
+    
+    # ===== 课程页 =====
+    if course_modules:
+        course_page = Image.new('RGB', (page_w, page_h), (255,255,255))
+        draw = ImageDraw.Draw(course_page)
+        
+        draw.rectangle([0, 0, page_w, 40], fill=primary)
+        draw.text((page_w//2, 20), "课程安排", fill=(255,255,255), font=font_subtitle, anchor="mm")
+        
+        # 信息行
+        info = f"{course_location or '地点'} | {course_duration or '时长'}"
+        draw.rectangle([0, 45, page_w, 70], fill=(245,245,245))
+        draw.text((page_w//2, 57), info, fill=(100,100,100), font=font_small, anchor="mm")
+        
+        y = 85
+        for c in course_modules[:5]:
+            time = c.get("time", "")[:8]
+            content = c.get("content", "")[:10]
+            draw.text((15, y), f"{time}", fill=accent, font=font_small)
+            draw.text((55, y), content, fill=(60,60,60), font=font_text)
+            y += 28
+        
+        pages.append(("课程", course_page))
+    
+    # ===== 讲师页 =====
+    if teacher_name:
+        teacher_page = Image.new('RGB', (page_w, page_h), (255,255,255))
+        draw = ImageDraw.Draw(teacher_page)
+        
+        draw.rectangle([0, 0, page_w, 40], fill=primary)
+        draw.text((page_w//2, 20), "讲师介绍", fill=(255,255,255), font=font_subtitle, anchor="mm")
+        
+        # 头像占位
+        draw.ellipse([60, 55, 120, 115], fill=(230,230,230), outline=primary, width=2)
+        draw.text((90, 85), "头像", fill=(180,180,180), font=font_small, anchor="mm")
+        
+        # 姓名
+        draw.text((page_w//2, 130), teacher_name, fill=(40,40,40), font=font_subtitle, anchor="mm")
+        draw.text((page_w//2, 150), teacher_title[:15] if teacher_title else "", fill=primary, font=font_small, anchor="mm")
+        
+        y = 175
+        for e in teacher_experiences[:3]:
+            draw.text((15, y), f"• {e[:15]}", fill=(80,80,80), font=font_small)
+            y += 22
+        
+        pages.append(("讲师", teacher_page))
+    
+    # ===== 指南页 =====
+    if guide:
+        guide_page = Image.new('RGB', (page_w, page_h), (255,255,255))
+        draw = ImageDraw.Draw(guide_page)
+        
+        draw.rectangle([0, 0, page_w, 40], fill=primary)
+        draw.text((page_w//2, 20), "学习指南", fill=(255,255,255), font=font_subtitle, anchor="mm")
+        
+        y = 60
+        for k, v in list(guide.items())[:4]:
+            if v:
+                draw.text((15, y), k, fill=primary, font=font_small)
+                draw.text((15, y+15), str(v)[:18], fill=(60,60,60), font=font_text)
+                y += 45
+        
+        pages.append(("指南", guide_page))
+    
+    # ===== 封底 =====
+    back = Image.new('RGB', (page_w, page_h), secondary)
+    draw = ImageDraw.Draw(back)
+    
+    draw.line([20, 80, page_w-20, 80], fill=(255,255,255), width=2)
+    draw.text((page_w//2, page_h//2), "扫码咨询", fill=(255,255,255), font=font_subtitle, anchor="mm")
+    
+    # 二维码占位
+    draw.rectangle([60, page_h//2+20, 120, page_h//2+80], fill=(255,255,255), outline=(255,255,255))
+    draw.text((90, page_h//2+50), "QR", fill=secondary, font=font_small, anchor="mm")
+    
+    pages.append(("封底", back))
+    
+    return pages, colors
+
 # 预览功能
 if "show_preview" not in st.session_state:
     st.session_state["show_preview"] = False
@@ -594,215 +802,12 @@ with col3:
         st.session_state["show_preview"] = True
         st.session_state["export_pdf"] = True
 
-# ==================== 预览渲染 ====================
-def generate_preview_html(fold_type, style, product_name, slogan, cover_image, 
-                          selling_points, pain_points, solution_title, solution_intro, 
-                          modules, course_modules, course_duration, course_location,
-                          teacher_name, teacher_title, teacher_experiences, teacher_image,
-                          guide, qr_images):
-    """生成折页预览HTML"""
-    
-    # 风格颜色映射
-    style_colors = {
-        "橙色科技风": {"primary": "#ff6b35", "secondary": "#f7931e", "bg": "#fff8f0"},
-        "红色商务风": {"primary": "#c41e3a", "secondary": "#8b0000", "bg": "#fff5f5"},
-        "蓝色商务风": {"primary": "#1e88e5", "secondary": "#0d47a1", "bg": "#f0f7ff"},
-        "绿色清新风": {"primary": "#43a047", "secondary": "#2e7d32", "bg": "#f0fff0"},
-        "紫色高端风": {"primary": "#7b1fa2", "secondary": "#4a148c", "bg": "#faf0ff"},
-        "金色尊贵风": {"primary": "#d4a574", "secondary": "#b8860b", "bg": "#fffaf0"}
-    }
-    colors = style_colors.get(style, style_colors["橙色科技风"])
-    
-    # 页面数量
-    pages = {"二折页": 4, "三折页": 6, "四折页": 8}
-    page_count = pages.get(fold_type, 6)
-    
-    html = f"""
-    <style>
-        .brochure-preview {{
-            width: 100%;
-            background: #f5f5f5;
-            padding: 20px;
-            border-radius: 8px;
-            margin-top: 20px;
-        }}
-        .preview-pages {{
-            display: flex;
-            flex-wrap: wrap;
-            gap: 15px;
-            justify-content: center;
-        }}
-        .preview-page {{
-            width: 180px;
-            height: 142px;
-            background: white;
-            border: 2px solid {colors['primary']};
-            border-radius: 4px;
-            padding: 10px;
-            font-size: 10px;
-            overflow: hidden;
-            position: relative;
-        }}
-        .preview-page .page-label {{
-            position: absolute;
-            top: 5px;
-            right: 5px;
-            background: {colors['primary']};
-            color: white;
-            padding: 2px 6px;
-            border-radius: 3px;
-            font-size: 9px;
-        }}
-        .preview-page h3 {{
-            color: {colors['primary']};
-            font-size: 12px;
-            margin: 15px 0 8px 0;
-            border-bottom: 1px solid {colors['primary']};
-            padding-bottom: 4px;
-        }}
-        .preview-page p {{
-            color: #333;
-            font-size: 9px;
-            margin: 3px 0;
-            line-height: 1.3;
-        }}
-        .preview-cover {{
-            background: linear-gradient(135deg, {colors['primary']}, {colors['secondary']});
-            color: white;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            text-align: center;
-        }}
-        .preview-cover h2 {{
-            color: white;
-            font-size: 14px;
-            margin: 5px 0;
-        }}
-        .preview-cover .slogan {{
-            font-size: 9px;
-            opacity: 0.9;
-        }}
-        .preview-item {{
-            display: flex;
-            align-items: flex-start;
-            margin: 4px 0;
-        }}
-        .preview-item .icon {{
-            margin-right: 5px;
-        }}
-        .preview-note {{
-            text-align: center;
-            color: #888;
-            font-size: 12px;
-            margin-top: 15px;
-        }}
-    </style>
-    <div class="brochure-preview">
-        <div style="text-align:center; color:{colors['primary']}; font-weight:500; margin-bottom:15px;">
-            📄 {fold_type}预览（{page_count}面）- {style}
-        </div>
-        <div class="preview-pages">
-    """
-    
-    # 封面
-    html += f"""
-        <div class="preview-page preview-cover">
-            <span class="page-label">封面</span>
-            <h2>{product_name or '产品名称'}</h2>
-            <p class="slogan">{slogan or '产品Slogan'}</p>
-        </div>
-    """
-    
-    # 痛点页
-    pain_html = "".join([f'<div class="preview-item"><span class="icon">{p["icon"]}</span><span>{p["text"]}</span></div>' for p in pain_points[:4]]) if pain_points else '<p>点击"痛点"标签填写</p>'
-    html += f"""
-        <div class="preview-page">
-            <span class="page-label">痛点</span>
-            <h3>核心痛点</h3>
-            {pain_html}
-        </div>
-    """
-    
-    # 方案页
-    modules_html = "".join([f'<p>▸ {m["name"]}</p>' for m in modules[:4]]) if modules else '<p>点击"方案"标签填写</p>'
-    html += f"""
-        <div class="preview-page">
-            <span class="page-label">方案</span>
-            <h3>{solution_title or '解决方案'}</h3>
-            <p>{solution_intro[:50] + '...' if solution_intro and len(solution_intro) > 50 else solution_intro or ''}</p>
-            {modules_html}
-        </div>
-    """
-    
-    # 课程页
-    if course_modules:
-        course_html = "".join([f'<p>{c["time"]} {c["content"]}</p>' for c in course_modules[:4]])
-        html += f"""
-        <div class="preview-page">
-            <span class="page-label">课程</span>
-            <h3>课程安排</h3>
-            <p>📍 {course_location or '地点'} | ⏰ {course_duration or '时长'}</p>
-            {course_html}
-        </div>
-        """
-    
-    # 讲师页
-    if teacher_name:
-        exp_html = "".join([f'<p>• {e}</p>' for e in teacher_experiences[:3]])
-        html += f"""
-        <div class="preview-page">
-            <span class="page-label">讲师</span>
-            <h3>讲师介绍</h3>
-            <p><strong>{teacher_name}</strong></p>
-            <p style="color:{colors['primary']}">{teacher_title}</p>
-            {exp_html}
-        </div>
-        """
-    
-    # 指南页
-    guide_html = "".join([f'<p><strong>{k}:</strong> {v}</p>' for k, v in list(guide.items())[:4] if v])
-    if guide_html:
-        html += f"""
-        <div class="preview-page">
-            <span class="page-label">指南</span>
-            <h3>学习指南</h3>
-            {guide_html}
-        </div>
-        """
-    
-    # 封底
-    html += f"""
-        <div class="preview-page preview-cover">
-            <span class="page-label">封底</span>
-            <h2>扫码咨询</h2>
-            <p class="slogan">期待您的加入</p>
-        </div>
-    """
-    
-    html += """
-        </div>
-        <p class="preview-note">💡 提示：这是简化预览，实际折页会根据排版优化布局</p>
-    </div>
-    """
-    
-    return html
-
 # 显示预览
 if st.session_state.get("show_preview"):
     st.markdown("---")
+    st.subheader(f"📄 {fold_type}预览 - {style}")
     
-    # 获取所有数据 - 使用安全的变量获取方式
-    cover_img = st.session_state.get("generated_images", {}).get("cover", "")
-    teacher_img = st.session_state.get("generated_images", {}).get("teacher", "")
-    
-    # 安全获取变量（避免未定义错误）
-    try:
-        sp = selling_points
-    except NameError:
-        sp = []
-    
+    # 安全获取变量
     try:
         pp = pain_points
     except NameError:
@@ -858,13 +863,14 @@ if st.session_state.get("show_preview"):
     except NameError:
         g = {}
     
-    preview_html = generate_preview_html(
+    # 生成预览图片
+    cover_url = st.session_state.get("generated_images", {}).get("cover", "")
+    
+    pages, colors = create_brochure_preview(
         fold_type=fold_type,
         style=style,
         product_name=product_name,
         slogan=product_slogan,
-        cover_image=cover_img,
-        selling_points=sp,
         pain_points=pp,
         solution_title=stitle,
         solution_intro=sintro,
@@ -875,12 +881,20 @@ if st.session_state.get("show_preview"):
         teacher_name=tname,
         teacher_title=ttitle,
         teacher_experiences=texps,
-        teacher_image=teacher_img,
         guide=g,
-        qr_images=[]
+        cover_image_url=cover_url
     )
     
-    st.markdown(preview_html, unsafe_allow_html=True)
+    # 显示各页面预览
+    cols = st.columns(min(len(pages), 4))
+    
+    for idx, (page_name, page_img) in enumerate(pages):
+        col_idx = idx % 4
+        with cols[col_idx]:
+            # 添加页面标签
+            st.caption(f"**{page_name}**")
+            # 显示图片
+            st.image(page_img, use_column_width=True)
     
     # 关闭预览按钮
     if st.button("关闭预览"):
@@ -890,6 +904,6 @@ if st.session_state.get("show_preview"):
 # 页脚
 st.markdown("""
 <div class="footer">
-    Made with 🌸 by 微酱 | v2.5 高清生图版
+    Made with 🌸 by 微酱 | v3.0 可视化预览版
 </div>
 """, unsafe_allow_html=True)
