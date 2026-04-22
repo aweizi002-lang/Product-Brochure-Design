@@ -359,26 +359,47 @@ def generate_image_prompt(title, style, scene_type="封面"):
     
     return prompt
 
-def call_image_api(prompt, config=None, size="1536x1024"):
+def call_image_api(prompt, config=None, size="1536x1024", max_retries=3):
     """使用Pollinations.AI免费生成图片（无需API Key）"""
-    try:
-        # 解析尺寸
-        width, height = size.split("x")
-        
-        # 构建Pollinations.AI URL - 高清版本
-        encoded_prompt = requests.utils.quote(prompt)
-        # 使用flux模型，增加enhance参数提升质量
-        image_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width={width}&height={height}&model=flux&enhance=true&nologo=true"
-        
-        # 测试URL是否可访问
-        response = requests.head(image_url, timeout=10)
-        if response.status_code == 200:
-            return image_url, "成功"
-        
-        # 如果HEAD失败，直接返回URL（图片会在加载时生成）
-        return image_url, "成功"
-    except Exception as e:
-        return None, f"生成失败: {str(e)}"
+    import time
+    
+    for attempt in range(max_retries):
+        try:
+            # 解析尺寸
+            width, height = size.split("x")
+            
+            # 构建Pollinations.AI URL - 高清版本
+            encoded_prompt = requests.utils.quote(prompt)
+            # 使用flux模型，增加enhance参数提升质量
+            image_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width={width}&height={height}&model=flux&enhance=true&nologo=true"
+            
+            # 实际下载图片（Pollinations.AI在请求时才生成图片）
+            response = requests.get(image_url, timeout=120, stream=True)
+            
+            if response.status_code == 200:
+                # 将图片转为base64用于Streamlit显示
+                import base64
+                img_bytes = response.content
+                b64 = base64.b64encode(img_bytes).decode()
+                return f"data:image/png;base64,{b64}", "成功"
+            else:
+                if attempt < max_retries - 1:
+                    time.sleep(2)
+                    continue
+                return None, f"生成失败: HTTP {response.status_code}"
+                
+        except requests.exceptions.Timeout:
+            if attempt < max_retries - 1:
+                time.sleep(3)
+                continue
+            return None, f"生成超时（已重试{max_retries}次），请稍后再试"
+        except Exception as e:
+            if attempt < max_retries - 1:
+                time.sleep(2)
+                continue
+            return None, f"生成失败: {str(e)}"
+    
+    return None, "生成失败：已达最大重试次数"
 
 # ==================== 侧边栏 ====================
 with st.sidebar:
@@ -405,11 +426,11 @@ tabs = st.tabs([f"{tab_icons[i]} {name}" for i, name in enumerate(tab_names)])
 if "generated_images" not in st.session_state:
     st.session_state["generated_images"] = {}
 
-# 封面尺寸映射（根据折页单面尺寸180×285mm，比例约1:1.58，竖向）
+# 封面尺寸映射（根据折页展开尺寸，横向）
 COVER_SIZE_MAP = {
-    "二折页": "1024x1600",  # 竖向，适合单面封面
-    "三折页": "1024x1600",
-    "四折页": "1024x1600"
+    "二折页": "1280x1024",   # 横向 360:285 ≈ 1.26:1
+    "三折页": "1920x1080",   # 横向 540:285 ≈ 1.89:1 (16:9)
+    "四折页": "1920x768"     # 横向 720:285 ≈ 2.53:1
 }
 
 # ==================== 封面 ====================
@@ -428,8 +449,8 @@ with tabs[0]:
             prompt_text = st.text_area("提示词", value=auto_prompt, height=70)
             
             # 显示当前封面尺寸
-            cover_size = COVER_SIZE_MAP.get(fold_type, "1024x1600")
-            st.caption(f"📐 生成尺寸: {cover_size} (竖向，匹配折页单面比例)")
+            cover_size = COVER_SIZE_MAP.get(fold_type, "1920x1080")
+            st.caption(f"📐 生成尺寸: {cover_size} (横向，匹配折页展开比例)")
             
             if st.button("生成封面图", type="primary"):
                 with st.spinner("生成中..."):
